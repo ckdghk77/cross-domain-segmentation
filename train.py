@@ -53,8 +53,6 @@ train_loader, val_loader, trainDataSet, valDataSet = MMCVDataLoader(segm_model.t
                                                                     segm_model.test_load_pipeline,
                                                                     args);
 
-# Set up metrics
-metrics = StreamSegMetrics(segm_model.num_classes);
 
 best_score = 0.0
 cur_epoch = 0;
