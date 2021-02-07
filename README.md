@@ -1,6 +1,6 @@
 # Cross-Domain Weakly-Supervised Segmentation test
 
-This repository tests the method of [paper](http://openaccess.thecvf.com/content_cvpr_2018/html/Inoue_Cross-Domain_Weakly-Supervised_Object_CVPR_2018_paper.html on 
+This repository tests the method of [paper](http://openaccess.thecvf.com/content_cvpr_2018/html/Inoue_Cross-Domain_Weakly-Supervised_Object_CVPR_2018_paper.html) on 
 the semantic segmentation task. **(work in progress)**
 
 This on-going work is planned as follows:
