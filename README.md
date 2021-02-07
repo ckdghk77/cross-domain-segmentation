@@ -22,7 +22,7 @@ You require a mmsegmentation to run the segmentation. Please follow the instruct
 ## Step 1. Crawl the naver-webtoon images
 > We prepared the data with naver-webtoon-crawling repository [here](https://github.com/ckdghk77/naver-crawler).
 
-> ![image](https://github.com/ckdghk77/cross-domain-segmentation/tree/main/figs/webtoon_example.png)
+> ![image](./figs/webtoon_example.png)
 
 
 ## Step 2. Domain transfer from PASCAL VOC2012 to naver-webtoon images
@@ -30,7 +30,7 @@ You require a mmsegmentation to run the segmentation. Please follow the instruct
 > This code doesn't include the domain-transfer part. We assume that it dt_webtoon is prepared beforehand. You can simply get the same results if you train on
  the official Cycle-GAN code.
 
-> ![image](https://github.com/ckdghk77/cross-domain-segmentation/tree/main/figs/dt_result_webtoon.png)
+> ![image](./figs/dt_result_webtoon.png)
 
 ## Step 3. Fine-tuning the segmentation model on the transferred PASCAL VOC**(current step)**
 > We are working on this.
