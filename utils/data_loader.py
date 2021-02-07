@@ -7,60 +7,6 @@ from mmseg.datasets.custom import CustomDataset
 from mmseg.datasets.builder import build_dataloader
 
 
-def voc_cmap(N=256, normalized=False):
-    def bitget(byteval, idx):
-        return ((byteval & (1 << idx)) != 0)
-
-    dtype = 'float32' if normalized else 'uint8'
-    cmap = np.zeros((N, 3), dtype=dtype)
-    for i in range(N):
-        r = g = b = 0
-        c = i
-        for j in range(8):
-            r = r | (bitget(c, 0) << 7-j)
-            g = g | (bitget(c, 1) << 7-j)
-            b = b | (bitget(c, 2) << 7-j)
-            c = c >> 3
-
-        cmap[i] = np.array([r, g, b])
-
-    cmap = cmap/255 if normalized else cmap
-    return cmap
-
-class MyCustomDataSet(CustomDataset) :
-
-    cmap = voc_cmap()
-    def __init__(self,pipeline,
-                 img_dir,
-                 img_suffix='.jpg',
-                 ann_dir=None,
-                 seg_map_suffix='.png',
-                 split=None,
-                 data_root=None,
-                 test_mode=False,
-                 ignore_index=255,
-                 reduce_zero_label=False,
-                 classes=None,
-                 palette=None):
-        super(MyCustomDataSet, self).__init__(pipeline,
-                 img_dir,
-                 img_suffix=img_suffix,
-                 ann_dir=ann_dir,
-                 seg_map_suffix=seg_map_suffix,
-                 split=split,
-                 data_root=data_root,
-                 test_mode=test_mode,
-                 ignore_index=ignore_index,
-                 reduce_zero_label=reduce_zero_label,
-                 classes=classes,
-                 palette=palette)
-
-    @classmethod
-    def decode_voc_target(cls, mask):
-        """decode semantic mask to RGB image"""
-        return cls.cmap[mask]
-
-
 def pairing_input_target(inputs, targets) :
     '''
 
@@ -109,10 +55,10 @@ def MMCVDataLoader(train_pipeline, val_pipeline, opt) :
             val_f.write(img.split(".")[0]+"\n");
 
 
-    trainDataSet = MyCustomDataSet(train_pipeline, img_dir=train_dir,
+    trainDataSet = CustomDataset(train_pipeline, img_dir=train_dir,
                                  ann_dir = mask_dir, split= train_split);
 
-    valDataSet = MyCustomDataSet(val_pipeline, img_dir=val_dir,
+    valDataSet = CustomDataset(val_pipeline, img_dir=val_dir,
                                  ann_dir = mask_dir,split=val_split);
 
 
@@ -124,7 +70,7 @@ def MMCVDataLoader(train_pipeline, val_pipeline, opt) :
                                     workers_per_gpu=1,
                                     num_gpus=1, dist=False, shuffle=True);
 
-    return train_loader, val_loader, trainDataSet, valDataSet
+    return train_loader, val_loader
 
 
 

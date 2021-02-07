@@ -69,47 +69,39 @@ class Visualizer():
         if not isinstance(y, list):
             y = [y]
 
-        default_opts = {'title': self.name + "mIOU"}
-        if opts is not None:
-            default_opts.update(opts)
-
         try:
-            self.vis.line(X=x, Y=y, opts=default_opts, update='append', win=self.display_id+2)
+            self.vis.line(X=x, Y=y, opts={"title":name}, update='append', win=self.display_id+2)
         except VisdomExceptionBase:
             self.create_visdom_connections()
 
 
-    def vis_image(self, name, img, env=None, opts=None):
+    def vis_image(self, name, img):
         """ vis image in visdom
         """
-
         name = "[%s]" % str(self.display_id) + name
-        default_opts = {'title': name + "seg_result"}
-        if opts is not None:
-            default_opts.update(opts)
 
-        self.vis.image(img=img, win=self.display_id + 1, opts=opts, env=self.disp_env)
+        self.vis.image(img=img, win=self.display_id + 1,
+                       opts= {"title":name},
+                       env=self.disp_env)
 
-    def vis_table(self, name, tbl, opts=None):
+    def vis_table(self, name, tbl, class_names):
 
         tbl_str = "<table width=\"100%\"> "
         tbl_str += "<tr> \
                  <th>Term</th> \
                  <th>Value</th> \
                  </tr>"
-        for k, v in tbl.items():
+
+        for i in range(tbl.shape[0]):
             tbl_str += "<tr> \
                        <td>%s</td> \
-                       <td>%s</td> \
-                       </tr>" % (k, v)
+                       <td>%.2f</td> \
+                       </tr>" % (class_names[i], tbl[i])
 
         tbl_str += "</table>"
 
-        default_opts = {'title': name}
-        if opts is not None:
-            default_opts.update(opts)
-
-        self.vis.text(tbl_str, win=self.display_id + 3, opts=default_opts)
+        self.vis.text(tbl_str, win=self.display_id + 3,
+                      opts= {"title":name},env=self.disp_env)
 
 
     def create_visdom_connections(self):
@@ -120,7 +112,7 @@ class Visualizer():
         Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
 
 
-    def display_current_results(self, visuals, val_score, epoch):
+    def display_current_results(self, visuals, val_score, epoch, class_names):
         """Display current results on visdom; save current results to an HTML file.
 
         Parameters:
@@ -128,29 +120,23 @@ class Visualizer():
             val_score - - mIOU value
         """
         ori_data, seg_pred, seg_target = visuals;
+        mIoU = val_score[0];
+        classIoU = val_score[1];
+
 
         if self.display_id > 0:  # show images in the browser using visdom
-            ncols = self.ncols
 
             try:
-                self.vis_scalar("[Val] Overall Acc", epoch, val_score['Overall Acc'])
-                self.vis_scalar("[Val] Mean IoU", epoch, val_score['Mean IoU'])
-                self.vis_table("[Val] Class IoU", val_score['Class IoU'])
-                sample_idx = 1
+                self.vis_scalar("[Val] Mean IoU", epoch, mIoU)
+                self.vis_table("[Val] Class IoU", classIoU, class_names)
                 target_idx = randint(0,len(ori_data));
 
-                for (img, target, lbl) in zip(ori_data, seg_target, seg_pred):
-                    #img = (img.numpy() * 255).astype(np.uint8)
+                img, target, lbl = ori_data[target_idx], seg_target[target_idx], seg_pred[target_idx];
+                img = (img * 255).astype(np.uint8)
 
-                    pim = Image.open(img);
-                    np_img = np.asarray(pim).transpose(2,0,1);
+                concat_img = np.concatenate((img, target, lbl), axis=2)  # concat along width
+                self.vis_image('Sample', concat_img)
 
-                    if target_idx == sample_idx -1 :
-                        break;
-
-                    concat_img = np.concatenate((np_img, target, lbl), axis=2)  # concat along width
-                    self.vis_image('Sample %d' % sample_idx , concat_img)
-                    sample_idx+=1;
             except VisdomExceptionBase:
 
                 self.create_visdom_connections()

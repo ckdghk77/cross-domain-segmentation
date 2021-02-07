@@ -1,9 +1,13 @@
 
+from mmseg.apis import inference_segmentor
 from mmseg.apis import init_segmentor
+from mmseg.core.evaluation import mean_iou
+
+from mmseg.core.evaluation.class_names import voc_classes
 
 from torch import nn
 from mmcv.runner import build_optimizer
-from utils.util import add_prefix
+from utils.util import resize
 import torch.nn.functional as F
 
 from torchvision.transforms.functional import normalize
@@ -24,6 +28,9 @@ class Segmentation_model(nn.Module) :
         self.num_classes = self.model.decode_head.num_classes
         self.checkpoint_dir = args.checkpoints_folder
 
+        if args.exp_name.startswith("voc") :
+            self.class_names = voc_classes()
+
         ###########################################
         # Define Optimizer and criterion
         ###########################################
@@ -40,6 +47,12 @@ class Segmentation_model(nn.Module) :
 
         if args.cuda:
             self.model = self.model.cuda()
+
+        # test a single image and show the results
+        img = './datasets/voc2012/train/2007_000027.jpg'  # or img = mmcv.imread(img), which will only load it once
+        result = inference_segmentor(self.model, img)
+
+        self.model.show_result(img, result, out_file='result.jpg')
 
 
     def process_pipeline(self, train_pipe, test_pipe):
@@ -87,7 +100,7 @@ class Segmentation_model(nn.Module) :
 
         return loss
 
-    def evaluate(self, data):
+    def inference(self, data):
 
         self.model.eval()
 
@@ -105,14 +118,40 @@ class Segmentation_model(nn.Module) :
                               img_metas= metas);
 
 
-        target_list = list();               # Rescale to original input size (require modification)
+        inputs = inputs[0];
+
+        resized_input_list = list()
+        resized_target_list = list();               # Rescale to original input size (require modification)
         for t_i in range(targets.shape[0]) :
+            origianl_shape = metas[0][t_i]['ori_shape'][:2];
+            resized_target_list.append(resize(targets[t_i], origianl_shape));
+            resized_input_list.append(resize(inputs[t_i], origianl_shape));
 
-            target_list.append(F.interpolate(targets[t_i].unsqueeze(0).unsqueeze(0),
-                                             size=metas[0][t_i]['ori_shape'][:2],
-                                             mode='nearest').squeeze());
+        return resized_input_list, output, resized_target_list
 
-        return output, target_list
+    def evaluate_mIoU(self, pred, target):
+        all_acc, acc, dice = mean_iou(results=pred,
+                 gt_seg_maps=target,
+                 num_classes=self.num_classes,
+                 ignore_index=255)
+
+        return all_acc, acc, dice
+
+    def color_seg(self, seg) :
+        palette = self.model.PALETTE;
+        palette = np.array(palette)
+
+        assert palette.shape[0] == self.num_classes
+        assert palette.shape[1] == 3
+        assert len(palette.shape) == 2
+
+        color_seg = np.zeros((seg.shape[0], seg.shape[1], 3), dtype=np.uint8)
+        for label, color in enumerate(palette):
+            color_seg[seg == label, :] = color
+        # convert to BGR
+        color_seg = color_seg[..., ::-1]
+
+        return color_seg.transpose(2,0,1)
 
     def save_model(self, save_suffix):
         save_filename = 'model_' + save_suffix + '.pth';

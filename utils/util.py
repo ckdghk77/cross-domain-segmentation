@@ -1,5 +1,20 @@
 import torch
 import numpy as np
+import torch.nn.functional as F
+
+
+def resize(input, new_shape) :
+
+    if len(input.shape) == 2 :
+        input = input.unsqueeze(0).unsqueeze(0)
+    elif len(input.shape) == 3 :
+        input = input.unsqueeze(0)
+
+    reshape_input = F.interpolate(input,
+                  size=new_shape,
+                  mode='nearest').squeeze();
+
+    return reshape_input
 
 def save_ckpt(cur_itrs, model, optimizer, scheduler, best_score, path):
     """ save current model

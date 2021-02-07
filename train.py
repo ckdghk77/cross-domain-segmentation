@@ -10,6 +10,7 @@ from utils.util import *
 from utils.visualizer import Visualizer
 
 
+
 ###################################
  # Parse arguments
 ###################################
@@ -49,12 +50,11 @@ segm_model = Segmentation_model(pretrained_check_point, config, args);
 ###########################################
 # get DataLoader
 ###########################################
-train_loader, val_loader, trainDataSet, valDataSet = MMCVDataLoader(segm_model.train_load_pipeline,
-                                                                    segm_model.test_load_pipeline,
-                                                                    args);
+train_loader, val_loader = MMCVDataLoader(segm_model.train_load_pipeline,
+                                            segm_model.test_load_pipeline,
+                                            args);
 
 
-best_score = 0.0
 cur_epoch = 0;
 
 def train_loop(epoch) :
@@ -86,55 +86,44 @@ def train_loop(epoch) :
             interval_loss = 0.0;
             interval_acc = 0.0;
 
-        validate(epoch) # for debugging
         if iters % args.display_freq == 0 and iters > 0 :
             validate(epoch)
 
 
-    #segm_model.scheduler.step();
-
-
 def validate(epoch) :
-    metrics.reset()
     segm_model.eval()
 
-    denorm_list = list();
+    input_list = list();
     preds_list = list();
     target_list = list();
-    input_path_list = list();
 
     with torch.no_grad() :
         for iters, data in enumerate(val_loader):
 
-            preds, target = segm_model.evaluate(data);
+            input, preds, target = segm_model.inference(data);
 
-            input_path = os.path.join(
-                "datasets",
-                args.exp_name,
-                "val",
-                data['img_metas'][0].data[0][0]['ori_filename']);
-
+            input = input[0]
             preds = preds[0]
             target = target[0]
 
-            preds = trainDataSet.decode_voc_target(preds).transpose(2,0,1).astype(np.uint8);
-
-            target = trainDataSet.decode_voc_target(target).transpose(2,0,1).astype(np.uint8);
-
-            metrics.update(target, preds);
             # data => donormalize
-            #denorm_input = segm_model.denormalize(input);
+            input = segm_model.denormalize(input);
 
-            if iters < 50 :
-                #denorm_list.append(denorm_input);
-                input_path_list.append(input_path)
-                preds_list.append(preds);
-                target_list.append(target);
+            input_list.append(input.cpu().data.numpy())
+            preds_list.append(preds);
+            target_list.append(target.cpu().data.numpy());
 
-        val_score = metrics.get_results()
+        val_score = segm_model.evaluate_mIoU(preds_list,
+                                        target_list);
 
-        visualizer.display_current_results((input_path_list, preds_list, target_list), val_score, epoch)
-        print(val_score)
+        preds_list = [segm_model.color_seg(seg) for seg in preds_list]
+        target_list = [segm_model.color_seg(seg) for seg in target_list]
+
+        visualizer.display_current_results((input_list, preds_list, target_list),
+                                           val_score,
+                                           epoch,
+                                           segm_model.class_names)
+
 
 
 
@@ -143,19 +132,4 @@ saved_epoch = cur_epoch;
 for epoch in range(saved_epoch, args.epochs) :
     train_loop(epoch)
     segm_model.save_model('latest');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
