@@ -89,10 +89,19 @@ class Segmentation_model(nn.Module) :
 
         if next(self.model.parameters()).is_cuda:
             input, target = input.cuda(), target.unsqueeze(1).cuda()
+        else :
+            input, target = input, target.unsqueeze(1)
 
-        loss = self.model(return_loss=True, img = input,
-                          img_metas= data['img_metas'].data,
-                          gt_semantic_seg = target);
+        try :
+            loss = self.model(return_loss=True, img = input,
+                              img_metas= data['img_metas'].data,
+                              gt_semantic_seg = target);
+        except :
+            print(input.shape)
+            print(target.shape)
+            print(data['img_metas'].data)
+            exit(-1)
+
 
         loss['decode.loss_seg'].backward();
 
@@ -157,10 +166,8 @@ class Segmentation_model(nn.Module) :
         save_filename = 'model_' + save_suffix + '.pth';
         save_path = os.path.join(self.checkpoint_dir, save_filename);
 
-        if next(self.model.parameters()).is_cuda :
-            torch.save(self.model.cpu().state_dict, save_path);
-        else :
-            torch.save(self.model.state_dict, save_path);
+        torch.save(self.model.state_dict, save_path);
+
 
     def denormalize(self, tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
         for proc in self.test_load_pipeline :

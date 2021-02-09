@@ -63,14 +63,23 @@ class Visualizer():
         """Reset the self.saved status"""
         self.saved = False
 
-    def vis_scalar(self, name, x, y, opts=None):
-        if not isinstance(x, list):
-            x = [x]
-        if not isinstance(y, list):
-            y = [y]
+    def vis_scalar(self, name, epoch, iter_ratio, losses):
+
+        if not hasattr(self, 'plot_data') :
+            self.plot_data = {'X' : [], 'Y' : [], 'legend': list(losses.keys())};
+
+
+        self.plot_data['X'].append(epoch + iter_ratio);
+        self.plot_data['Y'].append([losses[k] for k in self.plot_data['legend']])
 
         try:
-            self.vis.line(X=x, Y=y, opts={"title":name}, update='append', win=self.display_id+2)
+            self.vis.line(X=np.stack([np.array(self.plot_data['X'])] * len(self.plot_data['legend']), 1),
+                          Y=np.array(self.plot_data['Y']),
+                          opts={"title":name,
+                                "legend": self.plot_data['legend'],
+                                "xlabel": 'epoch',
+                                'ylabel': 'value'},
+                          win=self.display_id+2)
         except VisdomExceptionBase:
             self.create_visdom_connections()
 
@@ -112,7 +121,7 @@ class Visualizer():
         Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
 
 
-    def display_current_results(self, visuals, val_score, epoch, class_names):
+    def display_current_results(self, visuals, val_score, epoch, iter_ratio, class_names):
         """Display current results on visdom; save current results to an HTML file.
 
         Parameters:
@@ -120,16 +129,17 @@ class Visualizer():
             val_score - - mIOU value
         """
         ori_data, seg_pred, seg_target = visuals;
-        mIoU = val_score[0];
-        classIoU = val_score[1];
-
+        meanAcc = val_score[0]*100.0;
+        meanIoU = np.mean(val_score[2])*100.0;
+        classIoU = val_score[2]*100.0;
 
         if self.display_id > 0:  # show images in the browser using visdom
 
             try:
-                self.vis_scalar("[Val] Mean IoU", epoch, mIoU)
+                self.vis_scalar("[Val] Metrics", epoch, iter_ratio, {"mIoU" : meanIoU,
+                                                                      "mAcc" : meanAcc})
                 self.vis_table("[Val] Class IoU", classIoU, class_names)
-                target_idx = randint(0,len(ori_data));
+                target_idx = randint(0,len(ori_data)-1);
 
                 img, target, lbl = ori_data[target_idx], seg_target[target_idx], seg_pred[target_idx];
                 img = (img * 255).astype(np.uint8)

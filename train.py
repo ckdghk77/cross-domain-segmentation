@@ -62,7 +62,6 @@ def train_loop(epoch) :
     segm_model.train()
     interval_loss = 0.0;
     interval_acc = 0.0;
-    total_dat_size = len(train_loader);
 
     for iters, data in enumerate(train_loader):
 
@@ -71,7 +70,7 @@ def train_loop(epoch) :
         segment_loss = torch.stack([losses[loss] for loss in losses if "loss" in loss]).mean();
         segment_acc = torch.stack([losses[loss] for loss in losses if "acc" in loss]).mean();
 
-        print(losses['decode.loss_seg'])
+        #print(losses['decode.loss_seg'])
 
         interval_loss += segment_loss.detach().cpu().numpy();
         interval_acc += segment_acc.detach().cpu().numpy();
@@ -79,18 +78,16 @@ def train_loop(epoch) :
         if iters % args.print_freq ==0 and iters>0 :
             print("Epoch %d Itrs %d, Loss=%f, Acc=%f" %
                   (epoch, iters, interval_loss/args.print_freq, interval_acc/args.print_freq))
-            visualizer.plot_current_losses(epoch,
-                                           (iters*args.batch_size)/total_dat_size,
-                                           losses)
 
             interval_loss = 0.0;
             interval_acc = 0.0;
 
         if iters % args.display_freq == 0 and iters > 0 :
-            validate(epoch)
+
+            validate(epoch, iters/len(train_loader))
 
 
-def validate(epoch) :
+def validate(epoch, iter_ratio) :
     segm_model.eval()
 
     input_list = list();
@@ -119,13 +116,12 @@ def validate(epoch) :
         preds_list = [segm_model.color_seg(seg) for seg in preds_list]
         target_list = [segm_model.color_seg(seg) for seg in target_list]
 
+
         visualizer.display_current_results((input_list, preds_list, target_list),
                                            val_score,
                                            epoch,
+                                           iter_ratio,
                                            segm_model.class_names)
-
-
-
 
 saved_epoch = cur_epoch;
 

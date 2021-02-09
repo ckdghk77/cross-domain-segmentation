@@ -9,7 +9,7 @@ def transfer_learning_args() :
     parser.add_argument('--epochs', type=int, default=300,
                         help='Number of epochs to train.c')
 
-    parser.add_argument('--lr', type=float, default=0.0001,
+    parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate.')
     parser.add_argument('--lr-decay', type=int, default=200,
                         help='After how epochs to decay LR by a factor of gamma.')
@@ -25,6 +25,8 @@ def transfer_learning_args() :
 
     parser.add_argument('--exp-name', type=str, default="voc2012_toon_725586",
                         help='exp-name)')
+    parser.add_argument('--test-dir', type=str, default="./datasets/toon_725586",
+                        help="test_dir of toon name")
     parser.add_argument('--model-name', type=str, default="deeplabv3plus_r50_voc12aug",
                         help='{}_{}_{}.format(base, backbone, trained_dataset'
                              'e.g. base : {deeplabv3plus},'
@@ -47,7 +49,7 @@ def transfer_learning_args() :
 
 
     #visdom option
-    parser.add_argument('--print_freq', type=int, default=50, help='frequency of print losses on console')
+    parser.add_argument('--print_freq', type=int, default=5, help='frequency of print losses on console')
     parser.add_argument('--display_freq', type=int, default=1, help='frequency of showing training results on screen')
     parser.add_argument('--display_ncols', type=int, default=4,
                         help='if positive, display all images in a single visdom web panel with certain number of images per row.')
