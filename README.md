@@ -6,8 +6,8 @@ the semantic segmentation task. **(work in progress)**
 This on-going work is planned as follows:
 1. Crawl the naver-webtoon images
 2. Domain transfer from PASCAL VOC to naver-webtoon images
-3. Fine-tuning the segmentation model on the transferred PASCAL VOC2012 **(current step)**
-4. Fine-tuning the segmentation model on the labeled naver-webtoon images
+3. Fine-tuning the segmentation model on the transferred PASCAL VOC2012 
+4. Fine-tuning the segmentation model on the labeled naver-webtoon images **(current step)**
 
 
 ## Requirements
@@ -32,6 +32,13 @@ You require a mmsegmentation to run the segmentation. Please follow the instruct
 
 > ![image](./figs/dt_result_webtoon.png)
 
-## Step 3. Fine-tuning the segmentation model on the transferred PASCAL VOC**(current step)**
-> We are working on this.
+## Step 3. Fine-tuning the segmentation model on the transferred PASCAL VOC
+> We performed finetuning with train.py. You can find the improved segmentation result below.
+> We cannot conduct quantitative analysis since we don't have accessible annotation data.
+
+> ![image](./figs/fine_tuned_result.png)
+
+
+## Step 4. Fine-tuning the segmentation model on the labeled naver-webtoon images **(current step)**
+
 
