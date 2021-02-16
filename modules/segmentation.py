@@ -41,18 +41,14 @@ class Segmentation_model(nn.Module) :
         ###########################################
         # Define data loader config
         ###########################################
-        self.train_load_pipeline, self.test_load_pipeline =\
+        self.train_load_pipeline, self.val_load_pipeline =\
             self.process_pipeline(copy.deepcopy(self.model.cfg.data.train.pipeline),
-                              copy.deepcopy(self.model.cfg.data.test.pipeline[:]))
+                              copy.deepcopy(self.model.cfg.data.test.pipeline))
+        self.test_load_pipeline = copy.deepcopy(self.model.cfg.data.test.pipeline);
 
         if args.cuda:
             self.model = self.model.cuda()
 
-        # test a single image and show the results
-        img = './datasets/voc2012/train/2007_000027.jpg'  # or img = mmcv.imread(img), which will only load it once
-        result = inference_segmentor(self.model, img)
-
-        self.model.show_result(img, result, out_file='result.jpg')
 
 
     def process_pipeline(self, train_pipe, test_pipe):
@@ -92,15 +88,10 @@ class Segmentation_model(nn.Module) :
         else :
             input, target = input, target.unsqueeze(1)
 
-        try :
-            loss = self.model(return_loss=True, img = input,
-                              img_metas= data['img_metas'].data,
-                              gt_semantic_seg = target);
-        except :
-            print(input.shape)
-            print(target.shape)
-            print(data['img_metas'].data)
-            exit(-1)
+        loss = self.model(return_loss=True, img = input,
+                          img_metas= data['img_metas'].data,
+                          gt_semantic_seg = target);
+
 
 
         loss['decode.loss_seg'].backward();
@@ -109,7 +100,7 @@ class Segmentation_model(nn.Module) :
 
         return loss
 
-    def inference(self, data):
+    def validate(self, data):
 
         self.model.eval()
 
@@ -137,6 +128,32 @@ class Segmentation_model(nn.Module) :
             resized_input_list.append(resize(inputs[t_i], origianl_shape));
 
         return resized_input_list, output, resized_target_list
+
+    def test(self, data):
+
+        self.model.eval()
+
+        inputs = list(data['img'][0].data);
+        metas = list(data['img_metas'][0].data);
+
+        if next(self.model.parameters()).is_cuda:
+            for d_i in range(len(inputs)) :
+                inputs[d_i] = inputs[d_i].cuda().unsqueeze(0)
+
+        with torch.no_grad() :
+            output = self.model(return_loss=False,rescale=True,
+                              img = inputs,
+                              img_metas= metas);
+
+
+        inputs = inputs[0];
+
+        resized_input_list = list()
+        for t_i in range(inputs.shape[0]) :
+            origianl_shape = metas[0][t_i]['ori_shape'][:2];
+            resized_input_list.append(resize(inputs[t_i], origianl_shape));
+
+        return resized_input_list, output
 
     def evaluate_mIoU(self, pred, target):
         all_acc, acc, dice = mean_iou(results=pred,
@@ -166,7 +183,7 @@ class Segmentation_model(nn.Module) :
         save_filename = 'model_' + save_suffix + '.pth';
         save_path = os.path.join(self.checkpoint_dir, save_filename);
 
-        torch.save(self.model.state_dict, save_path);
+        torch.save(self.model.state_dict(), save_path);
 
 
     def denormalize(self, tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):

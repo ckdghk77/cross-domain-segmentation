@@ -1,6 +1,6 @@
 
 from utils.parser_util import transfer_learning_args
-from utils.parser_util import model_parser
+from utils.parser_util import pretrained_model_parser
 
 import os
 
@@ -29,9 +29,10 @@ checkpoints_folder = '{}/exp_{}_on_{}'.format(args.checkpoints_dir, args.model_n
 args.checkpoints_folder = checkpoints_folder
 
 if not os.path.exists(checkpoints_folder) :
-    if args.continue_training :
+    if args.continue_train :
         raise("Cannot find model; turn off continue_training flag")
     os.mkdir(checkpoints_folder);
+
 
 ###################################
  # create visdom visualizer
@@ -42,18 +43,27 @@ visualizer = Visualizer(args)   # create a visualizer that display/save images a
 ###########################################
 # Load model from mmsegmentation (https://github.com/open-mmlab/mmsegmentation);
 ###########################################
-pretrained_check_point, config = model_parser(args.model_name, args.checkpoints_pt_dir,
+pretrained_check_point, config = pretrained_model_parser(args.model_name, args.checkpoints_pt_dir,
                                               args.config_dir);
+'''
+if args.continue_train :
+    load_check_point = args.checkpoints_folder + "/model_latest.pth";
+else :
+    load_check_point = pretrained_check_point
+'''
+segm_model = Segmentation_model(pretrained_check_point , config, args);
 
-segm_model = Segmentation_model(pretrained_check_point, config, args);
+if args.continue_train :
+    segm_model.model.load_state_dict(torch.load(args.checkpoints_folder +
+                                                "/model_latest.pth"));
+
 
 ###########################################
 # get DataLoader
 ###########################################
 train_loader, val_loader = MMCVDataLoader(segm_model.train_load_pipeline,
-                                            segm_model.test_load_pipeline,
+                                            segm_model.val_load_pipeline,
                                             args);
-
 
 cur_epoch = 0;
 
@@ -97,7 +107,7 @@ def validate(epoch, iter_ratio) :
     with torch.no_grad() :
         for iters, data in enumerate(val_loader):
 
-            input, preds, target = segm_model.inference(data);
+            input, preds, target = segm_model.validate(data);
 
             input = input[0]
             preds = preds[0]
@@ -126,6 +136,7 @@ def validate(epoch, iter_ratio) :
 saved_epoch = cur_epoch;
 
 for epoch in range(saved_epoch, args.epochs) :
+    segm_model.save_model('latest');
     train_loop(epoch)
     segm_model.save_model('latest');
 

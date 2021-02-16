@@ -74,4 +74,20 @@ def MMCVDataLoader(train_pipeline, val_pipeline, opt) :
 
 
 
+def MMCVTestLoader(test_pipeline, opt) :
+
+    test_dir = os.path.join(opt.test_dir, "test");
+
+    testDataSet = CustomDataset(test_pipeline, img_dir=test_dir, test_mode=True);
+
+
+    test_loader = build_dataloader(testDataSet, samples_per_gpu=opt.val_batch_size,
+                                    workers_per_gpu=1,
+                                    num_gpus=1, dist=False, shuffle=True);
+
+    return test_loader
+
+
+
+
 

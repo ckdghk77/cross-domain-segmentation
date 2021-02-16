@@ -9,7 +9,7 @@ def transfer_learning_args() :
     parser.add_argument('--epochs', type=int, default=300,
                         help='Number of epochs to train.c')
 
-    parser.add_argument('--lr', type=float, default=0.001,
+    parser.add_argument('--lr', type=float, default=0.0001,
                         help='learning rate.')
     parser.add_argument('--lr-decay', type=int, default=200,
                         help='After how epochs to decay LR by a factor of gamma.')
@@ -25,8 +25,6 @@ def transfer_learning_args() :
 
     parser.add_argument('--exp-name', type=str, default="voc2012_toon_725586",
                         help='exp-name)')
-    parser.add_argument('--test-dir', type=str, default="./datasets/toon_725586",
-                        help="test_dir of toon name")
     parser.add_argument('--model-name', type=str, default="deeplabv3plus_r50_voc12aug",
                         help='{}_{}_{}.format(base, backbone, trained_dataset'
                              'e.g. base : {deeplabv3plus},'
@@ -34,11 +32,10 @@ def transfer_learning_args() :
                              '     trained_dataset : {cityscapes, voc2012, voc2012aug}'
                              'you must download pretrained model from the mmsegmentation github page and'
                              'place it in checkpoints_pretrained')
-    parser.add_argument('--continue_training', action='store_true');
+    parser.add_argument('--continue_train', action='store_false');
     parser.add_argument('--gpu-id', type=str, default="0", help="GPU ID");
-    parser.add_argument('--crop-size', type=int, default=512,
+    parser.add_argument('--crop-size', type=int, default=384,
                         help='crop size')
-
 
     parser.add_argument('--checkpoints_pt_dir', type=str, default='./checkpoints_pretrained',
                         help='pretrained segmentation models should be saved here')
@@ -64,7 +61,45 @@ def transfer_learning_args() :
 
     return parser
 
-def model_parser(model_name, checkpoint_pretrained_dir, config_dir):
+
+def test_learning_args() :
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--no-cuda', action='store_true', default=False,
+                        help='Disables CUDA training.')
+    parser.add_argument('--seed', type=int, default=0, help='Random seed.')  ##  59 good
+    parser.add_argument('--val-batch-size', type=int, default=1,
+                        help='Number of samples per val-batch.')
+    parser.add_argument('--num_workers', type=int, default=1,
+                        help='Number of workers.')
+
+    parser.add_argument('--lr', type=float, default=0.0001,
+                        help='learning rate.')
+    parser.add_argument('--exp-name', type=str, default="voc2012_toon_725586",
+                        help='exp-name)')
+    parser.add_argument('--test-dir', type=str, default="./datasets/toon_725586",
+                        help="test_dir of toon name")
+    parser.add_argument('--model-name', type=str, default="deeplabv3plus_r50_voc12aug",
+                        help='{}_{}_{}.format(base, backbone, trained_dataset'
+                             'e.g. base : {deeplabv3plus},'
+                             '     backbone : {r101, r18, r50},'
+                             '     trained_dataset : {cityscapes, voc2012, voc2012aug}'
+                             'you must download pretrained model from the mmsegmentation github page and'
+                             'place it in checkpoints_pretrained')
+    parser.add_argument('--gpu-id', type=str, default="0", help="GPU ID");
+    parser.add_argument('--crop-size', type=int, default=384,
+                        help='crop size')
+
+    parser.add_argument('--checkpoints_pt_dir', type=str, default='./checkpoints_pretrained',
+                        help='pretrained segmentation models should be saved here')
+    parser.add_argument('--config_dir', type=str, default='./configs',
+                        help='you must place configs from mmsegmentation github page')
+    parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
+    parser.add_argument('--result_dir', type=str, default='./result', help='result file name here')
+
+
+    return parser
+
+def pretrained_model_parser(model_name, checkpoint_dir, config_dir):
 
 
     checkpoint_map = {
@@ -77,7 +112,7 @@ def model_parser(model_name, checkpoint_pretrained_dir, config_dir):
         'deeplabv3plus_r50_voc12aug': "deeplabv3plus/deeplabv3plus_r50-d8_512x512_40k_voc12aug.py"
     }
 
-    checkpoint_file = os.path.join(checkpoint_pretrained_dir, checkpoint_map[model_name]);
+    checkpoint_file = os.path.join(checkpoint_dir, checkpoint_map[model_name]);
     config_file = os.path.join(config_dir, config_map[model_name]);
 
     return checkpoint_file, config_file

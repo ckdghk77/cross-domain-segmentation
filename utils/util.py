@@ -2,6 +2,31 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
+from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+
+def save_test_img(inputs, preds) :
+
+    resize_x = 520;
+
+    fig, axes = plt.subplots(3, 2, gridspec_kw={'wspace': 0, 'hspace': 0},
+                             squeeze=True);
+    fig.set_size_inches(6.5, 9.5)
+
+    for idx, (input, pred) in enumerate(zip(inputs, preds)) :
+        tot_img = np.concatenate(((input * 255).astype(np.uint8),pred),axis=2);
+
+        pil_img = Image.fromarray(tot_img.transpose(1,2,0)).resize((resize_x,resize_x));
+
+        axes[idx//2, idx%2].imshow(np.array(pil_img));
+        axes[idx//2, idx%2].axis('off');
+
+    plt.savefig("result.png")
+
+
+
 
 def resize(input, new_shape) :
 
